@@ -5,8 +5,9 @@ REPO_DIR=$1
 NGINX_CONF_SRC="$REPO_DIR/nginx-config/default.conf"
 NGINX_CONF_DST="/home/ubuntu/conf.d"
 CERTS_DIR="/home/ubuntu/certs"
+HOST_CERTS_DIR="/etc/nginx/ssl"
 
-echo " 📁 Checking and installing Docker if not present..."
+echo "📁 Checking and installing Docker if not present..."
 
 if ! command -v docker &> /dev/null; then
   echo "🚀 Docker not found. Installing..."
@@ -42,7 +43,21 @@ mkdir -p "$CERTS_DIR"
 # Copy Nginx config
 cp "$NGINX_CONF_SRC" "$NGINX_CONF_DST/default.conf"
 
-echo " Deploying Nginx container..."
+# Copy certificates from host location to the mount directory
+echo "📜 Copying certificates..."
+if [ -d "$HOST_CERTS_DIR" ]; then
+  sudo cp -r "$HOST_CERTS_DIR"/* "$CERTS_DIR/"
+  # Ensure proper permissions
+  sudo chown -R $USER:$USER "$CERTS_DIR"
+  sudo chmod 644 "$CERTS_DIR"/*.crt
+  sudo chmod 600 "$CERTS_DIR"/*.key
+  echo "✅ Certificates copied successfully"
+else
+  echo "❌ Certificate directory $HOST_CERTS_DIR not found!"
+  exit 1
+fi
+
+echo "🚀 Deploying Nginx container..."
 
 sudo docker stop mynginx || true
 sudo docker rm mynginx || true
@@ -54,3 +69,13 @@ sudo docker run -d --name mynginx \
   nginx
 
 echo "✅ Nginx container deployed"
+
+# Verify the container is running
+sleep 2
+if sudo docker ps | grep -q mynginx; then
+  echo "✅ Nginx container is running successfully"
+else
+  echo "❌ Nginx container failed to start. Checking logs..."
+  sudo docker logs mynginx
+  exit 1
+fi
