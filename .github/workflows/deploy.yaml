@@ -1,4 +1,4 @@
-name: Nginx Deploy
+name: Nginx Deployy
 
 on:
   push:
