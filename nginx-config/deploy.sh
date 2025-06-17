@@ -63,6 +63,7 @@ sudo docker stop mynginx || true
 sudo docker rm mynginx || true
 
 sudo docker run -d --name mynginx \
+  --restart unless-stopped \
   -p 443:443 \
   -v "$NGINX_CONF_DST:/etc/nginx/conf.d" \
   -v "$CERTS_DIR:/etc/nginx/ssl" \
